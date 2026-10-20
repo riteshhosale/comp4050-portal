@@ -164,6 +164,8 @@ export default function OrderSummaryPage() {
   const totals = orderTotals(order.Items);
   const feasibility =
     order.Status === 'OPTIMISED' ? summary?.InventoryFeasibility ?? null : null;
+  const hasRejectedItems =
+    order.Status === 'OPTIMISED' && (summary?.Rejected?.length ?? 0) > 0;
   const editOrder = () => {
     if (order.Status === 'OPTIMISED') {
       setShowEditWarning(true);
@@ -194,9 +196,11 @@ export default function OrderSummaryPage() {
             </p>
           </div>
           <span
-            className={`rounded-sm px-3 py-1 text-sm font-medium ${ORDER_STATUS_STYLES[order.Status] || 'bg-ink-50 text-ink-500'}`}
+            className={`rounded-sm px-3 py-1 text-sm font-medium ${hasRejectedItems
+              ? 'border border-red-200 bg-red-50 text-red-700'
+              : ORDER_STATUS_STYLES[order.Status] || 'bg-ink-50 text-ink-500'}`}
           >
-            {orderStatusLabel(order.Status)}
+            {hasRejectedItems ? 'Optimised with Rejections' : orderStatusLabel(order.Status)}
           </span>
         </div>
 
@@ -223,6 +227,7 @@ export default function OrderSummaryPage() {
         canOptimise={canRunSolver(identity.role)}
         successMessage={successMessage}
         feasibility={feasibility}
+        hasRejectedItems={hasRejectedItems}
       />
 
       <div className="mt-6">
@@ -295,6 +300,7 @@ function LifecycleActions({
   canOptimise,
   successMessage,
   feasibility,
+  hasRejectedItems,
 }) {
   const inventoryIsShort = Boolean(feasibility) && !feasibility.Sufficient;
   let message;
@@ -319,7 +325,9 @@ function LifecycleActions({
       );
     }
   } else if (status === 'OPTIMISED') {
-    message = 'This order has a current optimisation result.';
+    message = hasRejectedItems
+      ? 'Some items were rejected and could not be packed. Review the rejected items below.'
+      : 'This order has a current optimisation result.';
     if (canOptimise) {
       primaryAction = (
         <>
@@ -350,7 +358,7 @@ function LifecycleActions({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="font-display text-lg font-semibold text-ink-700">
-            {orderStatusLabel(status)}
+            {hasRejectedItems ? 'Optimised with Rejections' : orderStatusLabel(status)}
           </h3>
           <p className="mt-1 text-sm text-ink-400">{message}</p>
         </div>
